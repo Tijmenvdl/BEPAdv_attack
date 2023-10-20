@@ -1,0 +1,4 @@
+pandas==2.1.0
+numpy==1.24.3
+NRCLex==3.0.0
+language-tool-python==2.7.1
