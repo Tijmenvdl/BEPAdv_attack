@@ -38,11 +38,6 @@ The file `main.py` contains calls on all relevant modules. As such, the only thi
 
 ## References
 <a id="1">[1]</a>
-Mark M. Bailey, PhD.
-NRCLex.
-GitHub repository.
-2019.
+Mark M. Bailey, PhD, NRCLex, GitHub repository, 2019.
 <a id="2">[2]</a>
-J. Pennington, R. Socher and C.D. Manning.
-Glove: Global vectors for word representation.
-In <em>Empirical Methods in Natural Language Processing (EMNLP), pages 1532-1543, 2014
+J. Pennington, R. Socher and C.D. Manning. Glove: Global vectors for word representation. In <em>Empirical Methods in Natural Language Processing (EMNLP), pages 1532-1543, 2014
