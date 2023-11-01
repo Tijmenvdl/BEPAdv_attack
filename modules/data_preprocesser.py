@@ -6,6 +6,8 @@ proper directory structure and load data, if found necessary
 import os
 import sys
 
+import pandas as pd
+
 def preprocesser(datasets_: dict): 
     '''
     Inspects the current environment, and creates folders if they are missing
@@ -31,4 +33,19 @@ def preprocesser(datasets_: dict):
 
     print("Datasets correctly structured. Proceeding to analysis...")
 
-    return None
+    # preprocessing of Amazon dataset
+    df_amazon = pd.read_csv(datasets_["amazon"], usecols=["reviews.text"]).rename(columns={"reviews.text": "text"}).fillna("")
+    df_amazon = df_amazon[df_amazon["text"] != ""]
+
+    # preprocessing of Starbucks dataset
+    df_starbucks = pd.read_csv(datasets_["starbucks"], usecols=["Review"]).rename(columns={"Review": "text"})
+    df_starbucks = df_starbucks[~(df_starbucks["text"].isin(["", "No Review Text"]))]
+
+    # preprocessing of hotel dataset
+    df_hotels = pd.read_csv(datasets_["hotels"], usecols=["Review"]).rename(columns={"Review": "text"})
+
+    # preprocessing of restaurant dataset
+    df_restaurants = pd.read_csv(datasets_["restaurants"], usecols=["Review"]).rename(columns={"Review": "text"})
+    df_restaurants = df_restaurants[df_restaurants["text"].str.len() > 50] # arbitrarily chosen cut-off to exclude non-full sentence reviews.
+
+    return df_amazon, df_starbucks, df_hotels, df_restaurants

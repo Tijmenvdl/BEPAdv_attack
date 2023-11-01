@@ -16,7 +16,7 @@ def main():
     '''
     Main executable tool
     '''
-    preprocesser(datasets)
+    df_amazon, df_starbucks, df_hotels, df_restaurants = preprocesser(datasets)
 
 if __name__ == "__main__":
     # Run main function
