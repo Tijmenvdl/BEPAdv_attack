@@ -6,7 +6,7 @@ proper directory structure and load data, if found necessary
 import os
 import sys
 
-def data_checker(datasets_: dict): 
+def preprocesser(datasets_: dict): 
     '''
     Inspects the current environment, and creates folders if they are missing
     Input: dictionary
@@ -25,6 +25,10 @@ def data_checker(datasets_: dict):
             files_bool = True
 
         #Output what files are missing
-        if files_bool:
-            print(rf"File(s) {missing_files} is missing. Please refer to instructions in README.md and download (AND RENAME) accordingly...")
-            sys.exit()
+    if files_bool:
+        print(rf"File(s) {missing_files} is missing. Please refer to instructions in README.md and download (AND RENAME) accordingly...")
+        sys.exit()
+
+    print("Datasets correctly structured. Proceeding to analysis...")
+
+    return None
