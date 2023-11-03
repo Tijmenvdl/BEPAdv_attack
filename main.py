@@ -3,6 +3,7 @@ This is the main executable tool for the repository of this Bachelor End Project
 '''
 # Imports
 from modules.data_preprocesser import preprocesser
+from modules.lexicon import lexicon
 
 # Required datasets in dictionary with string as key and folder location for easy use
 datasets = {
@@ -16,7 +17,11 @@ def main():
     '''
     Main executable tool
     '''
+    # Loading and pre-processing datasets
     df_amazon, df_starbucks, df_hotels, df_restaurants = preprocesser(datasets)
+
+    # Loading lexicons
+    wordlex, wordlex_full = lexicon()
 
 if __name__ == "__main__":
     # Run main function

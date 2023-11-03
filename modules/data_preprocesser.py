@@ -11,13 +11,12 @@ import pandas as pd
 def preprocesser(datasets_: dict): 
     '''
     Inspects the current environment, and creates folders if they are missing
-    Input: dictionary
-    Also downloads GloVe pre-trained word embeddings.
+    Input: 
+    - datasets_ dictionary as provided in main.py with desired dataset locations. Can be adjusted in main, but not recommended
     '''
-    #Create "data" and "word_embeddings" folder, if they do not exist yet
-    for folder in ["./data", "./word_embeddings"]:
-        if not os.path.isdir(folder):
-            os.mkdir(folder)
+    #Create "data" folder, if it does not exist yet
+    if not os.path.isdir("./data"):
+        os.mkdir("./data")
 
     #Check if datasets provided in main are all found in the right location
     files_bool, missing_files = False, []
@@ -46,6 +45,6 @@ def preprocesser(datasets_: dict):
 
     # preprocessing of restaurant dataset
     df_restaurants = pd.read_csv(datasets_["restaurants"], usecols=["Review"]).rename(columns={"Review": "text"})
-    df_restaurants = df_restaurants[df_restaurants["text"].str.len() > 50] # arbitrarily chosen cut-off to exclude non-full sentence reviews.
+    df_restaurants = df_restaurants[df_restaurants["text"].str.len() > 50] # arbitrarily chosen cut-off to include only full-sentence reviews.
 
     return df_amazon, df_starbucks, df_hotels, df_restaurants
