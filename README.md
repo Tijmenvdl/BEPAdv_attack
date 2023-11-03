@@ -14,10 +14,10 @@ To ensure the proper versions of all packages are installed, please run the <em>
 > `python -m pip install -r requirements.txt`
 
 ## Downloading datasets
-When cloning this repository from GitHub, a folder with data and word embeddings is not included by default. This is done to reduce the storage size of the project on Git (hence the reason for the inclusion of the lexicon files, which are not large files), and will ask users to download the data and set the right folders themselves. The module `data_check.py` provides some help in doing this. It will install a folder `./data` and `./word_embeddings` at the right location within the main folder. 
+When cloning this repository from GitHub, a folder with data and word embeddings is not included by default. This is done to reduce the storage size of the project on Git (hence the reason for the inclusion of the lexicon files, which are not large files), and will ask users to download the data and set the right folders themselves. The module `data_check.py` provides some help in doing this. It will install a folder `./data` at the right location within the main folder. 
 For complexity reasons, I do not supply code that automatically downloads missing datasets. However, below one can find a rundown of what files are needed to download and extract. The files must named as put in the folder and named as specified. 
 In the `./data` folder, the user must download data on [Amazon product reviews](https://www.kaggle.com/datasets/arhamrumi/amazon-product-reviews), [Starbuck reviews](https://www.kaggle.com/datasets/harshalhonde/starbucks-reviews-dataset), [TripAdvisor hotel reviews](https://www.kaggle.com/datasets/andrewmvd/trip-advisor-hotel-reviews/) and [Restaurant reviews](https://www.kaggle.com/datasets/joebeachcapital/restaurant-reviews).
-The project requires pre-trained word embeddings from the Stanford University project [GloVe](https://nlp.stanford.edu/data/glove.6B.zip) [[2]](#2), to be place in the `./word_embeddings` folder.
+The project requires pre-trained word embeddings from the Stanford University project [GloVe](https://nlp.stanford.edu/data/glove.6B.zip) [[2]](#2), they will downloaded using `gensim`, so need not be downloaded manually.
 The files should be named and placed in the appropriate folders as seen below. 
 <ul>
 <li> data:
@@ -26,10 +26,6 @@ The files should be named and placed in the appropriate folders as seen below.
 <li> Hotel_reviews.csv</li>
 <li> Restaurant_reviews.csv</li>
 <li> Starbucks_reviews.csv</li>
-</ul>
-<li> word_embeddings:
-<ul>
-<li> GloVe word embeddings (Download all files and do not alter file names) </li>
 </ul>
 </ul>
 

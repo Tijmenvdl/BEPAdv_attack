@@ -2,6 +2,8 @@
 This is the main executable tool for the repository of this Bachelor End Project.
 '''
 # Imports
+import gensim.downloader
+
 from modules.data_preprocesser import preprocesser
 from modules.lexicon import lexicon
 
@@ -22,6 +24,12 @@ def main():
 
     # Loading lexicons
     wordlex, wordlex_full = lexicon()
+
+    # Loading GloVe embeddings
+    print("Downloading GloVe embeddings...")
+    glove_vectors = gensim.downloader.load("glove-wiki-gigaword-100")
+
+    print("Analysis complete.")
 
 if __name__ == "__main__":
     # Run main function
