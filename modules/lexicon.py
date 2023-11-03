@@ -53,4 +53,6 @@ def lexicon():
     wordlex["spectrum_sum"] = spectrum_sums 
     wordlex = wordlex[wordlex["spectrum_sum"] > 0].drop(["spectrum_sum"], axis=1) # lexicon reduced by 68%
 
+    print("Lexicon loaded...")
+
     return wordlex, wordlex_full

@@ -18,7 +18,7 @@ def main():
     Main executable tool
     '''
     # Loading and pre-processing datasets
-    df_amazon, df_starbucks, df_hotels, df_restaurants = preprocesser(datasets)
+    used_datasets = preprocesser(datasets)
 
     # Loading lexicons
     wordlex, wordlex_full = lexicon()
