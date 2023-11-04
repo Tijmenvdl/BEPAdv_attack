@@ -3,6 +3,7 @@ This is the main executable tool for the repository of this Bachelor End Project
 '''
 # Imports
 import gensim.downloader
+import language_tool_python
 
 from modules.data_preprocesser import preprocesser
 from modules.lexicon import lexicon
@@ -28,6 +29,9 @@ def main():
     # Loading GloVe embeddings
     print("Downloading GloVe embeddings...")
     glove_vectors = gensim.downloader.load("glove-wiki-gigaword-100")
+
+    # Loading grammar correction tool
+    lang_tool = language_tool_python.LanguageTool("en-US")
 
     print("Analysis complete.")
 
