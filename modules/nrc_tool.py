@@ -61,9 +61,9 @@ def nrc_affect_freqs(text_: str):
 
     sum_values = sum(affect_freqs.values())
 
-    for key in affect_freqs.keys():
-        affect_percentages.update({key: round((float(affect_freqs[key]) / float(sum_values)), 2)})
-
+    for key, value in affect_freqs.items():
+        affect_percentages.update({key: round(value / sum_values, 2)})
+        
     return affect_percentages
 
 def nrc_top_emotions(text_: str):
