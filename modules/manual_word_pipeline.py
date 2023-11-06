@@ -56,20 +56,18 @@ class ManualAttack:
     def emotional_replacement(self, word):
         pass
 
-    def lang_check(str1_, str2_, lang_tool_):
+    def lang_check(self, new_text):
         '''
         Functions performs language/grammar check on two strings.
         Will fix in second string only the fixes that are found on top of the ones found in first string.
         Parameters:
-            -str1_: First string
-            -str2_: Second string with one word-level substitution compared to first
-            -lang_tool_: Loaded language check tool
+            -new_text: Second string with one word-level substitution compared to first
         Returns:
             -str2_fixed: Grammar-fixed second string, using only the fixes found on top of the first string's ones.
         '''
 
         # Find language errors in both string
-        matches_1, matches_2 = lang_tool_.check(str1_), lang_tool_.check(str2_)
+        matches_1, matches_2 = self.lang_tool.check(self.text), self.lang_tool.check(new_text)
 
         # Look for that one fix
         found_fixes = []
@@ -87,8 +85,8 @@ class ManualAttack:
             except IndexError:
                 found_fixes.append(matches_2[-1])
 
-        str2_fixed = language_tool_python.utils.correct(str2_, found_fixes)
-        return str2_fixed
+        new_text_fixed = language_tool_python.utils.correct(new_text, found_fixes)
+        return new_text_fixed
 
     def sentence_similarity(self, sent_list):
         '''
@@ -121,7 +119,7 @@ class ManualAttack:
         for word in target_words_prio:
             if self.embeddings.__contains__(word): # target word must be in GloVe vocab
                 for candidate in self.non_emotional_replacement(word):
-                    new_text = self.lang_check(self.text, re.sub(word, candidate, self.text), self.lang_tool)
+                    new_text = self.lang_check(re.sub(word, candidate, self.text))
 
                     # The string must comply to three requirements
                     # 1) The sentence must be semantically similar enough
