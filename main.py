@@ -4,6 +4,7 @@ This is the main executable tool for the repository of this Bachelor End Project
 # Imports
 import gensim.downloader
 import language_tool_python
+from sentence_transformers import SentenceTransformer
 
 from modules.data_preprocesser import preprocesser
 from modules.lexicon import lexicon
@@ -32,6 +33,10 @@ def main():
 
     # Loading grammar correction tool
     lang_tool = language_tool_python.LanguageTool("en-US")
+
+    # Loading sentence similarity model
+    print("Downloading sentence transformer...")
+    sent_sim_model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
 
     print("Analysis complete.")
 

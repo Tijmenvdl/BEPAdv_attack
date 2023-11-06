@@ -163,4 +163,4 @@ data/*
 word_embeddings/*
 testenv.ipynb
 inspecting_datasets.ipynb
-settings.json
+.pylintrc
