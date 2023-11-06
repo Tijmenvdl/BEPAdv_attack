@@ -18,10 +18,11 @@ class ManualAttack:
     '''
     Class ManualAttack containing all functions needed for manual word-level substitution strategies.
     '''
-    def __init__(self, text_,
-                 lexicon_=wordlex,
-                 embeddings_=glove_vectors, sentence_model_=sent_sim_model,
-                 lang_tool_=lang_tool,
+
+    def __init__(self, text_, 
+                 lexicon_=wordlex, 
+                 embeddings_=glove_vectors, sentence_model_=sent_sim_model, 
+                 lang_tool_=lang_tool, 
                  word_sim_=0.60, sent_sim_=0.60):
         '''
         Initialising function. Takes a number of default parameters. 
@@ -49,14 +50,13 @@ class ManualAttack:
             -most_similar_dict: Dictionary with similarity scores containing similar words that do possess some emotion
         '''
         most_similar = self.embeddings.most_similar(word, topn=50) # Find most similar words, number 50 is arbitrarily chosen
-        most_similar_dict = {key: val for key, val in most_similar if key in self.lexicon.index} # perturbation candidate must have some emotion
-        most_similar_words = list(most_similar_dict.keys())
-        return most_similar_words
+        most_similar_dict = list({key: val for key, val in most_similar if key in self.lexicon.index}.keys()) # perturbation candidate must have some emotion
+        return most_similar_dict
     
     def emotional_replacement(self, word):
         pass
 
-    def lang_check(self, str1_, str2_, lang_tool_):
+    def lang_check(str1_, str2_, lang_tool_):
         '''
         Functions performs language/grammar check on two strings.
         Will fix in second string only the fixes that are found on top of the ones found in first string.
@@ -121,12 +121,16 @@ class ManualAttack:
         for word in target_words_prio:
             if self.embeddings.__contains__(word): # target word must be in GloVe vocab
                 for candidate in self.non_emotional_replacement(word):
-                    if new_text != self.text: # Debug: in some particular cases, the grammar corrector changes the perturbed sentence back to itself.
-                        new_text = self.lang_check(self.text, re.sub(word, candidate, self.text), self.lang_tool)
-                        if self.sentence_similarity([self.text, new_text]): # check sentence similarity
-                            return new_text # return attack if found similar enough
-        return "No adversarial attack found." # statement of unsuccessfulness
+                    new_text = self.lang_check(self.text, re.sub(word, candidate, self.text), self.lang_tool)
 
+                    # The string must comply to three requirements
+                    # 1) The sentence must be semantically similar enough
+                    # 2) The language corrector may not grammar-correct the perturbed sentence back to itself, 
+                    # 3) The language corrector may not grammar-correct the perturbed sentence to a version 
+                    # that changes the sentiment of the perturbation candidate (conjugations that are not fully encapsulated in wordlex).
+                    if new_text != self.text and self.sentence_similarity([self.text, new_text]) and nrc_affect_freqs(new_text) != self.affect_freqs: 
+                        return new_text # return attack if found similar enough
+        return "No adversarial attack found." # statement of unsuccessfulness
 
     def full_pipeline(self):
 
