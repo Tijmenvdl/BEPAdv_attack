@@ -5,9 +5,13 @@ This is the main executable tool for the repository of this Bachelor End Project
 import gensim.downloader
 import language_tool_python
 from sentence_transformers import SentenceTransformer
+import pandas as pd
 
 from modules.data_preprocesser import preprocesser
 from modules.lexicon import lexicon
+
+#ignore warnings
+pd.set_option("mode.chained_assignment", None)
 
 # Required datasets in dictionary with string as key and folder location for easy use
 datasets = {
@@ -25,7 +29,7 @@ def main():
     used_datasets = preprocesser(datasets)
 
     # Loading lexicons
-    wordlex, wordlex_full = lexicon()
+    wordlex = lexicon()
 
     # Loading GloVe embeddings
     print("Downloading GloVe embeddings...")

@@ -3,6 +3,7 @@ Module containing functions that do pre-processing of the lexicon
 using the available resources.
 '''
 import pandas as pd
+import numpy as np
 
 def lexicon():
     '''
@@ -42,7 +43,7 @@ def lexicon():
                        "trust"]]
 
     # Overall spectrum column
-    wordlex["spectrum"] = wordlex.values.tolist()
+    wordlex["spectrum"] = np.asarray(wordlex.values)
 
     spectrum_sums = []
     for item, _ in wordlex.iterrows():
@@ -55,4 +56,4 @@ def lexicon():
 
     print("Lexicon loaded...")
 
-    return wordlex, wordlex_full
+    return wordlex

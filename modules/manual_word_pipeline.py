@@ -7,10 +7,12 @@ import random
 import string
 import re
 
+import pandas as pd
 import language_tool_python
 from gensim.parsing.preprocesser import remove_stopwords
 from gensim.utils import tokenize
 from sentence_transformers import util
+from sklearn.metrics.pairwise import euclidean_distances
 
 from modules.nrc_tool import nrc_affect_dict, nrc_affect_freqs, nrc_top_emotions
 
@@ -19,10 +21,10 @@ class ManualAttack:
     Class ManualAttack containing all functions needed for manual word-level substitution strategies.
     '''
 
-    def __init__(self, text_, 
-                 lexicon_=wordlex, 
-                 embeddings_=glove_vectors, sentence_model_=sent_sim_model, 
-                 lang_tool_=lang_tool, 
+    def __init__(self, text_,
+                 lexicon_=wordlex,
+                 embeddings_=glove_vectors, sentence_model_=sent_sim_model,
+                 lang_tool_=lang_tool,
                  word_sim_=0.60, sent_sim_=0.60):
         '''
         Initialising function. Takes a number of default parameters. 
@@ -41,21 +43,7 @@ class ManualAttack:
         self.affect_freqs = nrc_affect_freqs(self.text)
         self.top_emotions = nrc_top_emotions(self.text)
 
-    def non_emotional_replacement(self, word):
-        '''
-        Function that looks for perturbation candidates if no emotional word was found in the text.
-        Parameter:
-            -word: A word isolated from the text message.
-        Returns:
-            -most_similar_dict: Dictionary with similarity scores containing similar words that do possess some emotion
-        '''
-        most_similar = self.embeddings.most_similar(word, topn=50) # Find most similar words, number 50 is arbitrarily chosen
-        most_similar_dict = list({key: val for key, val in most_similar if key in self.lexicon.index}.keys()) # perturbation candidate must have some emotion
-        return most_similar_dict
-    
-    def emotional_replacement(self, word):
-        pass
-
+    # ---- language check ----
     def lang_check(self, new_text):
         '''
         Functions performs language/grammar check on two strings.
@@ -87,7 +75,8 @@ class ManualAttack:
 
         new_text_fixed = language_tool_python.utils.correct(new_text, found_fixes)
         return new_text_fixed
-
+        
+    # ---- sentence similarity ----
     def sentence_similarity(self, sent_list):
         '''
         Function to evaluate sentence similarity between original text message and perturbed sentence.
@@ -103,6 +92,20 @@ class ManualAttack:
             sent_simil = True
         return sent_simil
     
+    # ---- emotionless pipeline
+
+    def non_emotional_replacement(self, word):
+        '''
+        Function that looks for perturbation candidates if no emotional word was found in the text.
+        Parameter:
+            -word: A word isolated from the text message.
+        Returns:
+            -most_similar_dict: Dictionary with similarity scores containing similar words that do possess some emotion
+        '''
+        most_similar = self.embeddings.most_similar(word, topn=50) # Find most similar words, number 50 is arbitrarily chosen
+        most_similar_dict = list({key: val for key, val in most_similar if key in self.lexicon.index}.keys()) # perturbation candidate must have some emotion
+        return most_similar_dict
+    
     def non_emotional_pipeline(self):
         '''
         Function that performs full word-substitution algorithm in case of emotionlessness in original text.
@@ -117,25 +120,78 @@ class ManualAttack:
         random.shuffle(target_words_prio)
 
         for word in target_words_prio:
-            if self.embeddings.__contains__(word): # target word must be in GloVe vocab
+            if word in self.embeddings: # target word must be in GloVe vocab
                 for candidate in self.non_emotional_replacement(word):
                     new_text = self.lang_check(re.sub(word, candidate, self.text))
 
                     # The string must comply to three requirements
                     # 1) The sentence must be semantically similar enough
-                    # 2) The language corrector may not grammar-correct the perturbed sentence back to itself, 
-                    # 3) The language corrector may not grammar-correct the perturbed sentence to a version 
+                    # 2) The language corrector may not grammar-correct the perturbed sentence back to itself,
+                    # 3) The language corrector may not grammar-correct the perturbed sentence to a version
                     # that changes the sentiment of the perturbation candidate (conjugations that are not fully encapsulated in wordlex).
                     if new_text != self.text and self.sentence_similarity([self.text, new_text]) and nrc_affect_freqs(new_text) != self.affect_freqs: 
                         return new_text # return attack if found similar enough
         return "No adversarial attack found." # statement of unsuccessfulness
+    
+    # ---- emotional pipeline ----
+    
+    def emotional_replacement(self, word):
+        '''
+        Function that returns list of ordered replacement candidates in case word is emotional.
+        Parameters:
+            word: word string that is to be replaced
+        Returns:
+            list of ordered replacement candidates
+        '''
+        # create dataframe with similarity scores for similar words
+        most_similar = pd.DataFrame(self.embeddings.most_similar(word, topn=50),
+                                    columns=["word", "sim_score"]) # Find most similar words, number 50 is arbitrarily chosen
+        most_similar_cutoff = most_similar[most_similar["sim_score"] >= self.word_sim] # Not strictly necessary, but speeds up computation (restricts search space)
 
+        # create column with spectrum (existing or empty) to compare with input word
+        most_similar_cutoff["spectrum"] = most_similar_cutoff["word"].apply(lambda x: self.lexicon.loc[x, "spectrum"] if x in self.lexicon.index else [0] * 8)
+        
+        # compute Euclidean distance between original word spectrum vector and replacement candidates
+        current_spectrum = self.lexicon.loc[word, "spectrum"]
+        dists = []
+        for item in most_similar_cutoff["spectrum"]:
+            dists.append(euclidean_distances([item], [current_spectrum]))
+        most_similar_cutoff["dist"] = [item.item() for item in dists]
+
+        # sort candidates by greatest Euclidean spectrum distance and similarity scores
+        return most_similar_cutoff.sort_values(by=["dist", "sim_score"], ascending=False)["word"].values.tolist()
+    
+    def emotional_pipeline(self, target_words):
+        ''''
+        Function that performs checks on replacement candidates when input word is emotional.
+        Parameters:
+            -Target_words: List of candidates in sentence to be replaced.
+        Return:
+            -New text: word-level-substituted sentence if all checks are passed on a candidate
+            -Statement of unsuccessfulness if no such substitution could be found for any emotional word in input.
+        '''
+        for word in target_words:
+            if word in self.embeddings: # target word must be in GloVe vocab
+                for candidate in self.emotional_replacement(word):
+                    new_text = self.lang_check(re.sub(word, candidate, self.text)) # language check
+
+                    #see comments above for conditions explanation
+                    if new_text != self.text and self.sentence_similarity([self.text, new_text]) and nrc_affect_freqs(new_text) != self.affect_freqs: 
+                        return new_text # return attack if found similar enough
+        return "No adversarial attack found." # statement of unsuccessfulness
+    
+    # ---- full pipeline ----
     def full_pipeline(self):
-
+        '''
+        Full pipeline, created for orderliness, combines pipelines regardless of emotionlessness in one function.
+        Returns: perturbed sentence, or message of unsuccessfulness.
+        '''
         #Take prioritised list of target words from nrc functions and apriori affect_freqs and top_emotions
         target_words_prio = list(nrc_affect_dict(self.text).keys())
 
-        # If sentece is currently a-emotional, we will try to attack some emotion into them.
-        # A randomly shuffled order of words in the sentence (tokenized and rid of punctuation) is set as words priority.
+        # If sentece is currently emotionless, we will try to attack some emotion into them.
         if not target_words_prio:
             return self.non_emotional_pipeline()
+        
+        # Otherwise attack will be attacked out of them, or changed over the emotions spectrum
+        return self.emotional_pipeline(target_words_prio)
