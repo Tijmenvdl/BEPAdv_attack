@@ -1,5 +1,5 @@
 '''
-Module contains class ManualAttack for from-scratch approach on string-level (not df-level).
+Module contains class ManualAttack for from-scratch approach on both string-level and df-level.
 '''
 
 #Imports
@@ -9,23 +9,23 @@ import re
 
 import pandas as pd
 import language_tool_python
-from gensim.parsing.preprocesser import remove_stopwords
+from gensim.parsing.preprocessing import remove_stopwords
 from gensim.utils import tokenize
 from sentence_transformers import util
 from sklearn.metrics.pairwise import euclidean_distances
 
 from modules.nrc_tool import nrc_affect_dict, nrc_affect_freqs, nrc_top_emotions
 
+# sentence level
 class ManualAttack:
     '''
     Class ManualAttack containing all functions needed for manual word-level substitution strategies.
     '''
 
     def __init__(self, text_,
-                 lexicon_=wordlex,
-                 embeddings_=glove_vectors, sentence_model_=sent_sim_model,
-                 lang_tool_=lang_tool,
-                 word_sim_=0.60, sent_sim_=0.60):
+                 lexicon_, lang_tool_,
+                 embeddings_, sentence_model_,
+                 word_sim_=0.70, sent_sim_=0.80):
         '''
         Initialising function. Takes a number of default parameters. 
         Only the word and sentence similarity scores should be changed for testing purposes.
@@ -33,7 +33,7 @@ class ManualAttack:
             text_: A lowercase text message to be adversarially attacked.
         Returns nothing
         '''
-        self.text = text_.lower()
+        self.text = text_
         self.lexicon = lexicon_
         self.embeddings = embeddings_
         self.sentence_model = sentence_model_
@@ -44,6 +44,7 @@ class ManualAttack:
         self.top_emotions = nrc_top_emotions(self.text)
 
     # ---- language check ----
+       
     def lang_check(self, new_text):
         '''
         Functions performs language/grammar check on two strings.
@@ -75,8 +76,9 @@ class ManualAttack:
 
         new_text_fixed = language_tool_python.utils.correct(new_text, found_fixes)
         return new_text_fixed
-        
+    
     # ---- sentence similarity ----
+
     def sentence_similarity(self, sent_list):
         '''
         Function to evaluate sentence similarity between original text message and perturbed sentence.
@@ -127,9 +129,9 @@ class ManualAttack:
                     # The string must comply to three requirements
                     # 1) The sentence must be semantically similar enough
                     # 2) The language corrector may not grammar-correct the perturbed sentence back to itself,
-                    # 3) The language corrector may not grammar-correct the perturbed sentence to a version
+                    # 3) The language corrector may not grammar-correct the perturbed sentence to a version,
                     # that changes the sentiment of the perturbation candidate (conjugations that are not fully encapsulated in wordlex).
-                    if new_text != self.text and self.sentence_similarity([self.text, new_text]) and nrc_affect_freqs(new_text) != self.affect_freqs: 
+                    if new_text != self.text and self.sentence_similarity([self.text, new_text]) and nrc_affect_freqs(new_text) != self.affect_freqs:
                         return new_text # return attack if found similar enough
         return "No adversarial attack found." # statement of unsuccessfulness
     
@@ -137,11 +139,11 @@ class ManualAttack:
     
     def emotional_replacement(self, word):
         '''
-        Function that returns list of ordered replacement candidates in case word is emotional.
-        Parameters:
-            word: word string that is to be replaced
+        Function that looks for perturbation candidates if emotional words are found in the text.
+        Parameter:
+            -word: A word isolated from the text message.
         Returns:
-            list of ordered replacement candidates
+            -most_similar_dict: Perturbation candidates for a word ranked on damage and similarity.
         '''
         # create dataframe with similarity scores for similar words
         most_similar = pd.DataFrame(self.embeddings.most_similar(word, topn=50),
@@ -162,32 +164,35 @@ class ManualAttack:
         return most_similar_cutoff.sort_values(by=["dist", "sim_score"], ascending=False)["word"].values.tolist()
     
     def emotional_pipeline(self, target_words):
-        ''''
-        Function that performs checks on replacement candidates when input word is emotional.
+        '''
+        Function that performs full word-substitution algorithm in case of emotionality in original text.
         Parameters:
-            -Target_words: List of candidates in sentence to be replaced.
-        Return:
-            -New text: word-level-substituted sentence if all checks are passed on a candidate
-            -Statement of unsuccessfulness if no such substitution could be found for any emotional word in input.
+            Target_words: List of words that contain emotion and can thus be substituted.
+        Returns:
+            -new_text: perturbed sentence that passes all checks
+            OR a statement of unsuccessfulness
         '''
         for word in target_words:
-            if word in self.embeddings: # target word must be in GloVe vocab
+            if word in self.embeddings: # target word must be in GloVe vocab, correct for small discrepancies in tool/lexicon
                 for candidate in self.emotional_replacement(word):
                     new_text = self.lang_check(re.sub(word, candidate, self.text)) # language check
 
                     #see comments above for conditions explanation
-                    if new_text != self.text and self.sentence_similarity([self.text, new_text]) and nrc_affect_freqs(new_text) != self.affect_freqs: 
+                    if new_text != self.text and self.sentence_similarity([self.text, new_text]) and nrc_affect_freqs(new_text) != self.affect_freqs:
                         return new_text # return attack if found similar enough
         return "No adversarial attack found." # statement of unsuccessfulness
     
     # ---- full pipeline ----
+
     def full_pipeline(self):
         '''
-        Full pipeline, created for orderliness, combines pipelines regardless of emotionlessness in one function.
-        Returns: perturbed sentence, or message of unsuccessfulness.
+        Full_pipeline function serves for nothing more than to combine all functions into one function to call on dataframe instances.
+        Returns:
+            Perturbed text.
         '''
         #Take prioritised list of target words from nrc functions and apriori affect_freqs and top_emotions
         target_words_prio = list(nrc_affect_dict(self.text).keys())
+        target_words_prio = [word for word in target_words_prio if word in self.lexicon.index]
 
         # If sentece is currently emotionless, we will try to attack some emotion into them.
         if not target_words_prio:
@@ -195,3 +200,42 @@ class ManualAttack:
         
         # Otherwise attack will be attacked out of them, or changed over the emotions spectrum
         return self.emotional_pipeline(target_words_prio)
+
+# df-level
+def perturb_df(dataset_, lexicon_, lang_tool_, embeddings_, sent_sim_model_):
+    '''
+    Performs dataset-level perturbations using ManualAttack.
+    Parameters:
+        dataset_: Pandas DataFrame, conforming to the formatting of data_preprocesser.py
+    Output:
+        new_df: Perturbed dataset
+    '''
+    # Create affect frequencies and top emotion as df columns
+    new_df = dataset_.copy()
+    new_df["freqs"] = new_df["text"].apply(lambda x: nrc_affect_freqs(x))
+    new_df = pd.concat([new_df.drop(["freqs"], axis=1),
+                        new_df["freqs"].apply(pd.Series)],
+                        axis=1)
+    new_df["top_emotion"] = new_df["text"].apply(lambda x: nrc_top_emotions(x))
+
+    # Create df column with perturbed text using ManualAttack
+    new_df["text_new"] = new_df["text"].apply(lambda x: ManualAttack(x,
+                                                                     lexicon_, lang_tool_,
+                                                                     embeddings_, sent_sim_model_).full_pipeline())
+
+    # Find their affect frequencies
+    empty_dict = {"anger": "",
+                  "disgust": "",
+                  "fear": "",
+                  "sadness": "",
+                  "anticipation": "",
+                  "joy": "",
+                  "surprise": "",
+                  "trust": ""}
+    new_df["freqs_new"] = new_df["text_new"].apply(lambda x: nrc_affect_freqs(x) if x != "No adversarial attack found." else empty_dict)
+    new_df = pd.concat([new_df.drop(["freqs_new"], axis=1),
+                        new_df["freqs_new"].apply(pd.Series).add_suffix("_new")],
+                        axis=1)
+    new_df["top_emotions_new"] = new_df["text_new"].apply(lambda x: nrc_top_emotions(x) if x != "No adversarial attack found." else "")
+
+    return new_df

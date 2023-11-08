@@ -43,7 +43,7 @@ def lexicon():
                        "trust"]]
 
     # Overall spectrum column
-    wordlex["spectrum"] = np.asarray(wordlex.values)
+    wordlex["spectrum"] = wordlex.values.tolist()
 
     spectrum_sums = []
     for item, _ in wordlex.iterrows():
@@ -57,3 +57,4 @@ def lexicon():
     print("Lexicon loaded...")
 
     return wordlex
+

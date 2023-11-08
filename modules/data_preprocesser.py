@@ -10,11 +10,12 @@ import pandas as pd
 
 from config import toggles
 
-def preprocesser(datasets_: dict): 
+def preprocesser(datasets_: dict, nrows_: int): 
     '''
     Inspects the current environment, and creates folders if they are missing
     Input: 
     - datasets_ dictionary as provided in main.py with desired dataset locations. Can be adjusted in main, but not recommended
+    - nrows_: int set as delimiter on how many lines are loaded
     '''
     #Create "data" folder, if it does not exist yet
     if not os.path.isdir("./data"):
@@ -34,37 +35,41 @@ def preprocesser(datasets_: dict):
 
     print("Data folders correctly structured. Proceeding to analysis...")
 
-    used_datasets = []
+    used_datasets = {}
 
     # preprocessing of Amazon dataset
     if toggles.data_toggles["amazon"]:
         df_amazon = pd.read_csv(datasets_["amazon"], 
-                                usecols=["reviews.text"]).rename(columns={"reviews.text": "text"}).fillna("")
+                                usecols=["reviews.text"],
+                                nrows=nrows_).rename(columns={"reviews.text": "text"}).fillna("")
         df_amazon = df_amazon[df_amazon["text"] != ""]
-        used_datasets.append(df_amazon)
+        used_datasets["Amazon_product_reviews.csv"] = df_amazon
 
     # preprocessing of Starbucks dataset
     if toggles.data_toggles["starbucks"]:
         df_starbucks = pd.read_csv(datasets_["starbucks"], 
-                                   usecols=["Review"]).rename(columns={"Review": "text"})
+                                   usecols=["Review"],
+                                   nrows=nrows_).rename(columns={"Review": "text"})
         df_starbucks = df_starbucks[~(df_starbucks["text"].isin(["", "No Review Text"]))]
-        used_datasets.append(df_starbucks)
+        used_datasets["Starbucks_reviews.csv"] = df_starbucks
 
     # preprocessing of hotel dataset
     if toggles.data_toggles["hotels"]:
         df_hotels = pd.read_csv(datasets_["hotels"], 
-                                usecols=["Review"]).rename(columns={"Review": "text"})
-        used_datasets.append(df_hotels)
+                                usecols=["Review"],
+                                nrows=nrows_).rename(columns={"Review": "text"})
+        used_datasets["Hotel_reviews.csv"] = df_hotels
 
     # preprocessing of restaurant dataset
     if toggles.data_toggles["restaurants"]:
         df_restaurants = pd.read_csv(datasets_["restaurants"], 
-                                     usecols=["Review"]).rename(columns={"Review": "text"})
+                                     usecols=["Review"],
+                                     nrows=nrows_).rename(columns={"Review": "text"})
         df_restaurants = df_restaurants[df_restaurants["text"].str.len() > 50] # arbitrarily chosen cut-off to include only full-sentence reviews.
-        used_datasets.append(df_restaurants)
+        used_datasets["Restaurant_reviews.csv"] = df_restaurants
 
     # Decapitalisation is necessary for perturbation
-    for dataset in used_datasets:
+    for dataset in list(used_datasets.values()):
         dataset["text"] = dataset["text"].str.lower()
 
     print("Dataset pre-processing good...")
