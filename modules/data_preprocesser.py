@@ -63,6 +63,10 @@ def preprocesser(datasets_: dict):
         df_restaurants = df_restaurants[df_restaurants["text"].str.len() > 50] # arbitrarily chosen cut-off to include only full-sentence reviews.
         used_datasets.append(df_restaurants)
 
+    # Decapitalisation is necessary for perturbation
+    for dataset in used_datasets:
+        dataset["text"] = dataset["text"].str.lower()
+
     print("Dataset pre-processing good...")
 
     return used_datasets
