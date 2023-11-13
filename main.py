@@ -14,8 +14,9 @@ from pandas.errors import SettingWithCopyWarning
 from modules.data_preprocesser import preprocesser
 from modules.lexicon import lexicon
 from modules.manual_attack import perturb_df
+from modules.success_measures import analysis_overview
 
-warnings.simplefilter(action="ignore", category=(FutureWarning, SettingWithCopyWarning))
+warnings.simplefilter(action="ignore", category=(FutureWarning, SettingWithCopyWarning, UserWarning))
 
 #ignore warnings
 pd.set_option("mode.chained_assignment", None)
@@ -33,7 +34,7 @@ def main():
     Main executable tool
     '''
     # Loading and pre-processing datasets
-    used_datasets = preprocesser(datasets, 1000)
+    used_datasets = preprocesser(datasets, 5000) # 5000 chosen to ensure validity of p-values
 
     # Loading lexicons
     wordlex = lexicon()
@@ -50,17 +51,23 @@ def main():
     print("Downloading sentence similarity model...")
     sent_sim_model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
 
+    # Attacking the dataframes
     for file, df in used_datasets.items():
 
-        #Computation takes long and is (fairly) deterministic so needs not to be reproduced every run
-        if not os.path.isfile(rf"./data/attacked_{file}.csv"):
+        #Computation takes long and is (fairly) deterministic so does not need to be reproduced every run
+        if not os.path.isfile(rf"./data/attacked_{file}"):
             print(rf"Attacking {file}...")
             attacked_df = perturb_df(df,
                                      wordlex, lang_tool,
                                      glove_vectors, sent_sim_model)
-            attacked_df.to_csv(rf"./data/attacked__{file}.csv")
+            attacked_df.to_csv(rf"./data/attacked_{file}", index=False)
 
-    print("Analysis complete.")
+    # Analysing successfulness
+    print("Performing successfulness analysis...")
+    successfulness_overview = analysis_overview(datasets)
+    successfulness_overview.to_csv("./data/succesfulness_overview.csv")
+
+    print("Full analysis complete.")
 
 if __name__ == "__main__":
     # Run main function

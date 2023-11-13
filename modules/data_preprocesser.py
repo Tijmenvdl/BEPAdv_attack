@@ -42,7 +42,7 @@ def preprocesser(datasets_: dict, nrows_: int):
         df_amazon = pd.read_csv(datasets_["amazon"], 
                                 usecols=["reviews.text"],
                                 nrows=nrows_).rename(columns={"reviews.text": "text"}).fillna("")
-        df_amazon = df_amazon[df_amazon["text"] != ""]
+        df_amazon = df_amazon[df_amazon["text"] != ""].sample(n=nrows_, random_state=5)
         used_datasets["Amazon_product_reviews.csv"] = df_amazon
 
     # preprocessing of Starbucks dataset
@@ -57,7 +57,7 @@ def preprocesser(datasets_: dict, nrows_: int):
     if toggles.data_toggles["hotels"]:
         df_hotels = pd.read_csv(datasets_["hotels"], 
                                 usecols=["Review"],
-                                nrows=nrows_).rename(columns={"Review": "text"})
+                                nrows=nrows_).rename(columns={"Review": "text"}).sample(n=nrows_, random_state=5)
         used_datasets["Hotel_reviews.csv"] = df_hotels
 
     # preprocessing of restaurant dataset

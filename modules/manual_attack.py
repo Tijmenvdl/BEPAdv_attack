@@ -161,7 +161,7 @@ class ManualAttack:
         most_similar_cutoff["dist"] = [item.item() for item in dists]
 
         # sort candidates by greatest Euclidean spectrum distance and similarity scores
-        return most_similar_cutoff.sort_values(by=["dist", "sim_score"], ascending=False)["word"].values.tolist()
+        return most_similar_cutoff.sort_values(by=["sim_score", "dist"], ascending=False)["word"].values.tolist()
     
     def emotional_pipeline(self, target_words):
         '''
@@ -237,5 +237,6 @@ def perturb_df(dataset_, lexicon_, lang_tool_, embeddings_, sent_sim_model_):
                         new_df["freqs_new"].apply(pd.Series).add_suffix("_new")],
                         axis=1)
     new_df["top_emotions_new"] = new_df["text_new"].apply(lambda x: nrc_top_emotions(x) if x != "No adversarial attack found." else "")
+    
 
     return new_df
