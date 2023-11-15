@@ -29,7 +29,7 @@ datasets = {
     "restaurants": "./data/Restaurant_reviews.csv"
 }
 
-def main():
+def main(wordsim, sentsim):
     '''
     Main executable tool
     '''
@@ -55,20 +55,20 @@ def main():
     for file, df in used_datasets.items():
 
         #Computation takes long and is (fairly) deterministic so does not need to be reproduced every run
-        if not os.path.isfile(rf"./data/attacked_{file}"):
+        if not os.path.isfile(rf"./data/results/attacked_{file}{int(wordsim * 100)}{int(sentsim * 100)}"):
             print(rf"Attacking {file}...")
             attacked_df = perturb_df(df,
                                      wordlex, lang_tool,
-                                     glove_vectors, sent_sim_model)
-            attacked_df.to_csv(rf"./data/attacked_{file}", index=False)
+                                     glove_vectors, sent_sim_model,
+                                     wordsim, sentsim)
+            attacked_df.to_csv(rf"./data/results/attacked_{file}{int(wordsim * 100)}{int(sentsim * 100)}", index=False)
 
     # Analysing successfulness
     print("Performing successfulness analysis...")
-    successfulness_overview = analysis_overview(datasets)
-    successfulness_overview.to_csv("./data/succesfulness_overview.csv")
+    analysis_overview(datasets,wordsim, sentsim)
 
     print("Full analysis complete.")
 
 if __name__ == "__main__":
     # Run main function
-    main()
+    main(wordsim=0.7, sentsim=0.8) # These may be changed to liking, but have an effect on the entire analysis

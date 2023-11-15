@@ -17,9 +17,11 @@ def preprocesser(datasets_: dict, nrows_: int):
     - datasets_ dictionary as provided in main.py with desired dataset locations. Can be adjusted in main, but not recommended
     - nrows_: int set as delimiter on how many lines are loaded
     '''
-    #Create "data" folder, if it does not exist yet
+    #Create "data" and "results" folders, if it does not exist yet
     if not os.path.isdir("./data"):
         os.mkdir("./data")
+    if not os.path.isdir("./data/results"):
+        os.mkdir("./data/results")
 
     #Check if datasets provided in main are all found in the right location
     files_bool, missing_files = False, []

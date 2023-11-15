@@ -105,7 +105,7 @@ class ManualAttack:
             -most_similar_dict: Dictionary with similarity scores containing similar words that do possess some emotion
         '''
         most_similar = self.embeddings.most_similar(word, topn=50) # Find most similar words, number 50 is arbitrarily chosen
-        most_similar_dict = list({key: val for key, val in most_similar if key in self.lexicon.index}.keys()) # perturbation candidate must have some emotion
+        most_similar_dict = list({key: val for key, val in most_similar if key in self.lexicon.index and val >= self.word_sim}.keys()) # perturbation candidate must have some emotion
         return most_similar_dict
     
     def non_emotional_pipeline(self):
@@ -202,7 +202,7 @@ class ManualAttack:
         return self.emotional_pipeline(target_words_prio)
 
 # df-level
-def perturb_df(dataset_, lexicon_, lang_tool_, embeddings_, sent_sim_model_):
+def perturb_df(dataset_, lexicon_, lang_tool_, embeddings_, sent_sim_model_, wordsim, sentsim):
     '''
     Performs dataset-level perturbations using ManualAttack.
     Parameters:
@@ -221,7 +221,8 @@ def perturb_df(dataset_, lexicon_, lang_tool_, embeddings_, sent_sim_model_):
     # Create df column with perturbed text using ManualAttack
     new_df["text_new"] = new_df["text"].apply(lambda x: ManualAttack(x,
                                                                      lexicon_, lang_tool_,
-                                                                     embeddings_, sent_sim_model_).full_pipeline())
+                                                                     embeddings_, sent_sim_model_,
+                                                                     wordsim, sentsim).full_pipeline())
 
     # Find their affect frequencies
     empty_dict = {"anger": "",

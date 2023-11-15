@@ -2,6 +2,8 @@
 Module contains class with functions necessary for evaluating the successfulness of attacks.
 '''
 import ast
+import statistics
+from math import log
 
 import pandas as pd
 import numpy as np
@@ -45,8 +47,7 @@ class SuccessMeasures:
         neg_count = len(list(set(emo_lst) & set(neg_emotions)))/len(emo_lst)
         pos_count = len(list(set(emo_lst) & set(pos_emotions)))/len(emo_lst)
         return neg_count, pos_count
-        
-    
+   
     def business_success(self):
         '''
         Function that evaluates the successfulness on a business-level perspective. 
@@ -76,7 +77,7 @@ class SuccessMeasures:
                                                         "Successful",
                                                         "Unsuccessful"))
         
-        # Concatenating dataframes 
+        # Concatenating dataframes
         full_df = pd.concat([df, self.no_attack_df], ignore_index=True)
         full_df["business_measure"] = full_df["business_measure"].fillna("Unsuccessful") # Setting unchanged sentences to unsuccessful by default
         
@@ -85,71 +86,92 @@ class SuccessMeasures:
     
     def analytical_success(self):
         '''
-        Function that performs statistical tests to evaluate analytical test.
-        Firstly, the Shapiro-Wilks test for normality is employed, upon which either the t-test for dependent samples
-        or the Wilcoxon Signed-Rank Test for equality of distribution on scores. 
+        Function that calculates base statistics, and performs statistical tests.
+        Mean, std, median, and mean of log-transformed data is computed.
+        Firstly, the Shapiro-Wilks test for normality is employed, upon which either the two-sample t-test
+        or the Mann-Whitney U Test for equality of distribution on scores. 
         '''
         # Combining the dfs because the spectrums most be analysed together, also the unchanged ones
         df = pd.concat([self.attack_df, self.no_attack_df], ignore_index=True)
 
-        evals = {}
+        stat_data = []
         for emotion in ["anger", "sadness", "disgust", "fear", "joy", "anticipation", "surprise", "trust"]:
             spectrum_pre, spectrum_post = df[emotion].to_list(), df[rf"{emotion}_new"].to_list()
-            data = spectrum_pre + spectrum_post
+            log_spectrum_pre = [log(x + 0.0001) for x in spectrum_pre]
+            log_spectrum_post = [log(x + 0.001) for x in spectrum_post] # Smoothing applied for logarithm 
+
+            # Calculate base stats
+            mean, mean_new = statistics.fmean(spectrum_pre), statistics.fmean(spectrum_post)
+            std, std_new = statistics.stdev(spectrum_pre), statistics.stdev(spectrum_post)
+            median, median_new = statistics.median(spectrum_pre), statistics.median(spectrum_post)
+            log_mean, log_mean_new = statistics.fmean(log_spectrum_pre), statistics.fmean(log_spectrum_post)
+            log_var, log_var_new = statistics.variance(log_spectrum_pre), statistics.variance(log_spectrum_post)
 
             # Perform Shapiro-Wilks test for normality
-            if stats.shapiro(data)[1] < 0.05:
+            data = spectrum_pre + spectrum_post
+            shapiro_stat = stats.shapiro(data)[1]
 
-                # Wilcoxon Signed-Rank Test in case of no normality
-                wilcoxon_stat = stats.wilcoxon(spectrum_pre, spectrum_post)[1]
-                evals[emotion] = {rf"{emotion}_normality p-value": stats.shapiro(data)[1],
-                                  rf"{emotion}_equality_p-value": wilcoxon_stat}
+            if shapiro_stat < 0.05:
+
+                # Mann-Whitney U Test in case of no normality
+                equality_stat = stats.mannwhitneyu(spectrum_pre, spectrum_post)[1]
+
             else:
 
-                # T-test for dependent samples in case of normality (not expected)
-                ttest_stat = stats.ttest_rel(spectrum_pre, spectrum_post)[1]
-                evals[emotion] = {rf"{emotion}_normality p-value": stats.shapiro(data)[1],
-                                 rf"{emotion}_equality_p-value": ttest_stat}
+                # Two-sample t-test in case of normality (not expected)
+                equality_stat = stats.ttest_ind(spectrum_pre, spectrum_post)[1]
+            
+            stat_data.append([emotion, 
+                              mean, std, median, log_mean, log_var, 
+                              mean_new, std_new, median_new, log_mean_new, log_var_new, 
+                              shapiro_stat, equality_stat])
 
-        return evals
-    
-def analysis_overview(dict_):
+        return stat_data
+   
+def analysis_overview(dict_, wordsim, sentsim):
     '''
-    Function that performs a collection of successfulness tests on all provided dfs
+    Function that performs a collection of successfulness tests on all provided dfs and writes results to clearly labelled csvs.
     Parameters:
         -dict_: dictionary of active dataframes in the analysis.
-    Returns:
-        -analysis_df: df containing collection of successfulness
+        -wordsims and sentsims float values to capture the right file.
     '''
 
-    data = [] # Initialising list for df building
+    stat_data = [] # Initialising list for df building
     for topic, file in dict_.items():
 
         # Correctly formatting filename
         filename = file.replace("./data/", "")
+        filename = filename.replace("_reviews", rf"_reviews{int(wordsim * 100)}{int(sentsim * 100)}")
         analysis_item = SuccessMeasures(filename)
-        data.append([topic, 
-                     len(analysis_item.df), 
+
+        # Creating dataframe for dataframe level statistics, including business-relevant metric
+        stat_data.append([topic,
+                     len(analysis_item.df),
                      analysis_item.initial_success(),
-                     analysis_item.business_success()[1],
-                     analysis_item.analytical_success()])
+                     analysis_item.business_success()[1]])
+        
+        # Creating dataframe for emotion-level statistics, including analytically-relevant metrics
+        topic_df = pd.DataFrame(data=analysis_item.analytical_success(),
+                                columns=["emotion",
+                                         "mean", "std", "median", "log_mean", "log_var",
+                                         "mean_new", "std_new", "median_new", "log_mean_new", "log_var_new", 
+                                         "Shapiro_Wilks_pval", "Equality_test_pval"]).set_index("emotion")
+        
+        # Calculate effect size using Cohen's d-metric on log-transformed data
+        n = len(analysis_item.df)
+        topic_df["pooled_var"] = np.sqrt(((n - 1) * topic_df["log_var"] + (n - 1) * topic_df["log_var_new"]) / (n * 2 - 2))
+        topic_df["Cohens_d_effect_size"] = abs(topic_df["log_mean"] - topic_df["log_mean_new"]) / topic_df["pooled_var"]
+        
+        # Writing topic_dfs to results folder
+        topic_df = topic_df.drop(["pooled_var", "log_var", "log_var_new"], axis=1)
+        topic_df.to_csv(rf"./data/results/{int(wordsim * 100)}{int(sentsim * 100)}{topic}_statistical_evaluation.csv")
     
     # Constructing dataframe out of collected successfulness measures
-    analysis_df = pd.DataFrame(data=data, columns=["topic",
+    analysis_df = pd.DataFrame(data=stat_data, columns=["topic",
                                                    "df_length",
                                                    "attack_rate",
-                                                   "business_success",
-                                                   "statistical_success"])
-    
-    # Exploding dictionaries to get columns with p-values for both normality and equality tests
-    analysis_df = pd.concat([analysis_df.drop("statistical_success", axis=1),
-                             analysis_df["statistical_success"].apply(pd.Series)],
-                             axis=1)
-    
-    for emotion in ["anger", "sadness", "disgust", "fear", "joy", "anticipation", "surprise", "trust"]:
-        analysis_df = pd.concat([analysis_df.drop(emotion, axis=1),
-                                 analysis_df[emotion].apply(pd.Series)],
-                                 axis=1)
+                                                   "business_success"])
+    analysis_df.to_csv(rf"./data/results/overall_tests_{int(wordsim * 100)}{int(sentsim * 100)}.csv")
         
-    return analysis_df
+    return None
     
