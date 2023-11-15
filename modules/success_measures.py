@@ -12,9 +12,11 @@ import scipy.stats as stats
 class SuccessMeasures:
     '''Class contains functions for rate of found attacks over all entries, 
     as well as functions used to calculate business-related successfulness and analytical success using statistical tests.'''
-    def __init__(self, df_):
+    def __init__(self, df_, wordsim_, sentsim_):
         self.csv_title = df_
-        self.df = pd.read_csv(rf"./data/attacked_{df_}").fillna("")
+        self.wordsim = wordsim_
+        self.sentsim = sentsim_
+        self.df = pd.read_csv(rf"./data/results/{int(self.wordsim * 100)}{int(self.sentsim * 100)}attacked_{df_}").fillna("")
         self.attack_df = self.df[self.df["text_new"] != "No adversarial attack found."]
         no_attack_df = self.df[self.df["text_new"] == "No adversarial attack found."]
 
@@ -141,8 +143,8 @@ def analysis_overview(dict_, wordsim, sentsim):
 
         # Correctly formatting filename
         filename = file.replace("./data/", "")
-        filename = filename.replace("_reviews", rf"_reviews{int(wordsim * 100)}{int(sentsim * 100)}")
-        analysis_item = SuccessMeasures(filename)
+        filename = filename.replace("attacked", rf"{int(wordsim * 100)}{int(sentsim * 100)}attacked")
+        analysis_item = SuccessMeasures(filename, wordsim, sentsim)
 
         # Creating dataframe for dataframe level statistics, including business-relevant metric
         stat_data.append([topic,

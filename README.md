@@ -30,7 +30,7 @@ The files should be named and placed in the appropriate folders as seen below.
 </ul>
 
 ## Executing tool
-The file `main.py` contains calls on all relevant modules. As such, the only thing a user needs to do to reproduce results, is run this file in an IDE or the command line.
+The file `main.py` contains calls on all relevant modules. As such, the only thing a user needs to do to reproduce results, is run this file in an IDE or the command line. By default the values of function arguments `wordsim`and `sentsim` are set to 0.7 and 0.8 respectively. These indicate the minimal word embedding cosine similarity for a perturbation candidate to be treated, and the minimal sentence embedding cosine similarity. These may be changed once for an entire run, as well as the toggles of inclusion of datasets in `toggles.py`. Decreasing the minimal word embedding similarity or increasing minimal sentence embedding similarity may have serious impact on the running time of the algorithm, dependent on the quality of perturbation candidates.
 
 ## References
 <a id="1">[1]</a>

@@ -55,13 +55,13 @@ def main(wordsim, sentsim):
     for file, df in used_datasets.items():
 
         #Computation takes long and is (fairly) deterministic so does not need to be reproduced every run
-        if not os.path.isfile(rf"./data/results/attacked_{file}{int(wordsim * 100)}{int(sentsim * 100)}"):
+        if not os.path.isfile(rf"./data/results/{int(wordsim * 100)}{int(sentsim * 100)}attacked_{file}"):
             print(rf"Attacking {file}...")
             attacked_df = perturb_df(df,
                                      wordlex, lang_tool,
                                      glove_vectors, sent_sim_model,
                                      wordsim, sentsim)
-            attacked_df.to_csv(rf"./data/results/attacked_{file}{int(wordsim * 100)}{int(sentsim * 100)}", index=False)
+            attacked_df.to_csv(rf"./data/results/{int(wordsim * 100)}{int(sentsim * 100)}attacked_{file}", index=False)
 
     # Analysing successfulness
     print("Performing successfulness analysis...")
