@@ -139,12 +139,10 @@ def analysis_overview(dict_, wordsim, sentsim):
     '''
 
     stat_data = [] # Initialising list for df building
-    for topic, file in dict_.items():
+    for file, _ in dict_.items():
 
-        # Correctly formatting filename
-        filename = file.replace("./data/", "")
-        filename = filename.replace("attacked", rf"{int(wordsim * 100)}{int(sentsim * 100)}attacked")
-        analysis_item = SuccessMeasures(filename, wordsim, sentsim)
+        topic = file.split("_")[0]
+        analysis_item = SuccessMeasures(file, wordsim, sentsim)
 
         # Creating dataframe for dataframe level statistics, including business-relevant metric
         stat_data.append([topic,

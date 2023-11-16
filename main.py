@@ -64,11 +64,11 @@ def main(wordsim, sentsim):
             attacked_df.to_csv(rf"./data/results/{int(wordsim * 100)}{int(sentsim * 100)}attacked_{file}", index=False)
 
     # Analysing successfulness
-    print("Performing successfulness analysis...")
-    analysis_overview(datasets,wordsim, sentsim)
+    print("Performing success analysis...")
+    analysis_overview(used_datasets, wordsim, sentsim)
 
     print("Full analysis complete.")
 
 if __name__ == "__main__":
     # Run main function
-    main(wordsim=0.7, sentsim=0.8) # These may be changed to liking, but have an effect on the entire analysis
+    main(wordsim=0.75, sentsim=0.80) # These may be changed to liking, but have an effect on the entire analysis

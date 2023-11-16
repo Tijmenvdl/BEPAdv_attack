@@ -119,6 +119,7 @@ class ManualAttack:
         #target words become cleaned tokens of sentence
         clean_sentence = remove_stopwords(self.text)
         target_words_prio = list(tokenize(clean_sentence.translate(str.maketrans("", "", string.punctuation))))
+        random.seed(5)
         random.shuffle(target_words_prio)
 
         for word in target_words_prio:
