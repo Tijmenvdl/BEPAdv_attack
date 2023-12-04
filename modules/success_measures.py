@@ -17,12 +17,14 @@ class SuccessMeasures:
         self.wordsim = wordsim_
         self.sentsim = sentsim_
         self.df = pd.read_csv(rf"./data/results/{int(self.wordsim * 100)}{int(self.sentsim * 100)}attacked_{df_}").fillna("")
-        self.attack_df = self.df[self.df["text_new"] != "No adversarial attack found."]
+        attack_df = self.df[self.df["text_new"] != "No adversarial attack found."]
         no_attack_df = self.df[self.df["text_new"] == "No adversarial attack found."]
 
         # set unperturbed sentence scores to that of the original sentence for statistical testing purposes
         for emotion in ["anger", "sadness", "disgust", "fear", "joy", "anticipation", "surprise", "trust"]:
             no_attack_df[rf"{emotion}_new"] = no_attack_df[emotion]
+
+        self.attack_df = attack_df
         self.no_attack_df = no_attack_df
 
     def initial_success(self):
